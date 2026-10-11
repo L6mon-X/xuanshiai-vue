@@ -99,6 +99,18 @@ export function buildWsTicketUrl(path: string, ticket: string): string {
   return base + API_PREFIX + p + sep + 'ticket=' + encodeURIComponent(ticket)
 }
 
+export function buildLiveWsUrl(path: string, ticket: string, lastVersion: number = 0): string {
+  let p = path != null ? ('' + path) : ''
+  if (p.charAt(0) != '/') p = '/' + p
+  let base = API_BASE_URL
+  if (base.indexOf('https://') == 0) {
+    base = 'wss://' + base.substring(8)
+  } else if (base.indexOf('http://') == 0) {
+    base = 'ws://' + base.substring(7)
+  }
+  return base + API_PREFIX + p + '?ticket=' + encodeURIComponent(ticket) + '&last_version=' + Math.max(0, Number(lastVersion))
+}
+
 export function resolveMediaUrl(value: any): string {
   if (value == null) return ''
   const p = '' + value
