@@ -466,6 +466,7 @@ export async function updateWorkspaceLead(leadId: string, changes: any) {
   const source = changes != null ? changes : {}
   const data: any = {}
   if (source.name != null) data.name = String(source.name)
+  if (source.realName != null) data.real_name = String(source.realName)
   if (source.phone != null) data.phone = String(source.phone)
   if (source.wechat != null) data.wechat = String(source.wechat)
   if (source.intentionLevel != null) data.intention_level = Number(source.intentionLevel)
@@ -486,6 +487,7 @@ export async function createWorkspaceLead(data: any) {
     method: 'POST',
     data: {
       name: source.name != null ? String(source.name).trim() : '',
+      real_name: source.realName != null && String(source.realName).trim() != '' ? String(source.realName).trim() : null,
       phone: source.phone != null && String(source.phone).trim() != '' ? String(source.phone).trim() : null,
       wechat: source.wechat != null && String(source.wechat).trim() != '' ? String(source.wechat).trim() : null,
       source: source.source != null && String(source.source).trim() != '' ? String(source.source).trim() : '手动录入',

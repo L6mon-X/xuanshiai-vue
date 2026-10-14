@@ -436,8 +436,8 @@ const entryDraft = ref<any>({
   housing: '', vehicle: '', smoking: '', drinking: '', religion: '', marriagePlan: '', tags: '', status: 'PUBLIC'
 })
 const entryTextFields = [
-  { key: 'nickname', label: '昵称', placeholder: '请输入昵称' },
   { key: 'realName', label: '姓名', placeholder: '请输入姓名' },
+  { key: 'nickname', label: '昵称', placeholder: '请输入昵称' },
   { key: 'phone', label: '手机', placeholder: '请输入手机号', type: 'number' },
   { key: 'wechat', label: '微信', placeholder: '请输入微信号' },
   { key: 'zodiac', label: '属相', placeholder: '例如：属马' },
