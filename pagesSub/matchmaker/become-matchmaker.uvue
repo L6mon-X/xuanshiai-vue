@@ -149,17 +149,23 @@
 						<view class="workspace-entry-demo" @click="fillMemberDemo"><text>{{ memberEntryFilled ? '清空示例' : '填充示例' }}</text></view>
 					</view>
 
-					<view class="workspace-entry-formcard">
+					<view class="workspace-entry-formcard workspace-entry-formcard-typo">
 						<view class="workspace-entry-card-head"><text class="workspace-entry-step">1</text><view class="workspace-entry-card-head-copy"><text class="workspace-entry-card-title">基础信息</text><text class="workspace-entry-card-require">姓名、昵称、手机为必填</text></view></view>
 						<view class="workspace-entry-row"><text class="workspace-entry-label">姓名</text><input :value="memberEntry.realName" @input="memberEntry.realName = $event.detail.value" placeholder="真实姓名（保密存储）" :maxlength="20"/></view>
 						<view class="workspace-entry-row"><text class="workspace-entry-label">昵称</text><input :value="memberEntry.nickname" @input="memberEntry.nickname = $event.detail.value" placeholder="会员展示昵称" :maxlength="20"/></view>
-						<view class="workspace-entry-row"><text class="workspace-entry-label">性别</text><view class="workspace-entry-chips"><view v-for="g in memberGenderOptions" :key="g.value" class="workspace-entry-chip" :class="{ active: memberEntry.gender == g.value }" @click="memberEntry.gender = g.value"><text>{{ g.label }}</text></view></view></view>
+						<view class="workspace-entry-block">
+							<text class="workspace-entry-block-label">性别</text>
+							<view class="ls-chips">
+								<view class="ls-chip ls-tone-blue" :class="{ active: memberEntry.gender == 1 }" @click="memberEntry.gender = memberEntry.gender == 1 ? 0 : 1"><text>男</text></view>
+								<view class="ls-chip ls-tone-pink" :class="{ active: memberEntry.gender == 2 }" @click="memberEntry.gender = memberEntry.gender == 2 ? 0 : 2"><text>女</text></view>
+							</view>
+						</view>
 						<view class="workspace-entry-row"><text class="workspace-entry-label">手机</text><input :value="memberEntry.phone" @input="memberEntry.phone = $event.detail.value" placeholder="11 位手机号" type="number" :maxlength="11"/></view>
 						<view class="workspace-entry-row last"><text class="workspace-entry-label">微信</text><input :value="memberEntry.wechat" @input="memberEntry.wechat = $event.detail.value" placeholder="微信号"/></view>
 					</view>
 
-					<view class="workspace-entry-formcard">
-						<view class="workspace-entry-card-head"><text class="workspace-entry-step">2</text><view class="workspace-entry-card-head-copy"><text class="workspace-entry-card-title">身体与属地</text><text class="workspace-entry-card-require">选填</text></view></view>
+					<view class="workspace-entry-formcard workspace-entry-formcard-typo">
+						<view class="workspace-entry-card-head"><text class="workspace-entry-step">2</text><view class="workspace-entry-card-head-copy"><text class="workspace-entry-card-title">身形与属地</text><text class="workspace-entry-card-require">选填</text></view></view>
 						<picker mode="date" :value="memberEntry.birthday" start="1950-01-01" end="2007-12-31" @change="memberEntry.birthday = $event.detail.value"><view class="workspace-entry-row"><text class="workspace-entry-label">生日</text><view class="workspace-entry-picker"><text>{{ memberEntry.birthday }}</text><i></i></view></view></picker>
 						<view class="workspace-entry-row"><text class="workspace-entry-label">身高</text><input :value="memberEntry.height" @input="memberEntry.height = $event.detail.value" placeholder="cm，如 165" type="number" :maxlength="3"/></view>
 						<view class="workspace-entry-row"><text class="workspace-entry-label">体重</text><input :value="memberEntry.weight" @input="memberEntry.weight = $event.detail.value" placeholder="kg，如 50" type="number" :maxlength="3"/></view>
@@ -326,8 +332,29 @@
 
 					<view class="workspace-entry-formcard">
 						<view class="workspace-entry-card-head"><text class="workspace-entry-step">5</text><view class="workspace-entry-card-head-copy"><text class="workspace-entry-card-title">补充说明</text><text class="workspace-entry-card-require">选填</text></view></view>
-						<view class="workspace-entry-row"><text class="workspace-entry-label">宗教</text><input :value="memberEntry.religion" @input="memberEntry.religion = $event.detail.value" placeholder="如：无"/></view>
-						<view class="workspace-entry-row"><text class="workspace-entry-label">结婚计划</text><input :value="memberEntry.marriagePlan" @input="memberEntry.marriagePlan = $event.detail.value" placeholder="如：两年内"/></view>
+						<view class="workspace-entry-block">
+							<text class="workspace-entry-block-label">宗教</text>
+							<view class="workspace-select">
+								<view class="workspace-select-trigger">
+									<input :value="memberEntry.religion" @input="memberEntry.religion = $event.detail.value" placeholder="如：无"/>
+								</view>
+							</view>
+						</view>
+						<view class="workspace-entry-block" :class="{ 'workspace-entry-block-floating': memberMarriagePlanPickerVisible }">
+							<text class="workspace-entry-block-label">结婚计划</text>
+							<view class="workspace-select">
+								<view class="workspace-select-trigger" @click="memberMarriagePlanPickerVisible = !memberMarriagePlanPickerVisible">
+									<text :class="{ 'workspace-select-placeholder': memberMarriagePlanValue.length == 0 }">{{ memberMarriagePlanLabel }}</text>
+									<view class="workspace-select-caret">
+										<view class="workspace-select-caret-up"></view>
+										<view class="workspace-select-caret-down"></view>
+									</view>
+								</view>
+								<view v-if="memberMarriagePlanPickerVisible" class="workspace-select-menu">
+									<view v-for="w in memberPrefWeddingOptions" :key="w" class="workspace-select-option" :class="{ active: memberMarriagePlanValue == w }" @click="pickMemberMarriagePlan(w)"><text>{{ w }}</text></view>
+								</view>
+							</view>
+						</view>
 						<view class="workspace-entry-block">
 							<text class="workspace-entry-block-label">会员标签</text>
 							<view class="workspace-tag-cloud">
@@ -344,32 +371,68 @@
 					<view class="workspace-entry-formcard">
 						<view class="workspace-entry-card-head"><text class="workspace-entry-step">6</text><view class="workspace-entry-card-head-copy"><text class="workspace-entry-card-title">择偶要求</text><text class="workspace-entry-card-require">选填，帮助精准匹配</text></view></view>
 						<view class="workspace-entry-block">
-							<text class="workspace-entry-block-label">年龄</text>
-							<view class="member-range-controls">
-								<view class="member-range-slider">
-									<text class="member-range-tag">最小</text>
-									<slider class="member-slider" :min="18" :max="90" :value="memberEntry.pref.ageMin" :step="1" activeColor="#c18cf6" backgroundColor="#e9e5f2" block-size="22" @change="onMemberPrefAgeMin"/>
-									<text class="member-range-val">{{ memberEntry.pref.ageMin }} 岁</text>
+							<text class="workspace-entry-block-label">年龄（岁）</text>
+							<view class="member-range-plate">
+								<view class="member-range-track" @touchstart="onMemberAgeTouchStart" @touchmove="onMemberAgeTouchMove" @touchend="onMemberAgeTouchEnd">
+									<view class="member-range-rail"></view>
+									<view class="member-range-fill"></view>
+									<view id="member-age-range" class="member-range-travel">
+										<view class="member-range-band" :style="{ left: memberAgeZoneLeft, width: memberAgeZoneWidth }"></view>
+										<view class="member-range-knob" :style="{ left: memberAgeLoLeft }">
+											<view class="member-range-knob-dot"></view>
+										</view>
+										<view class="member-range-knob" :style="{ left: memberAgeHiLeft }">
+											<view class="member-range-knob-dot"></view>
+										</view>
+										<view class="member-range-bubble" :style="{ left: memberAgeLoBubbleLeft }">
+											<view class="member-range-bubble-box"><text class="member-range-bubble-text">{{ memberAgeLo }}</text></view>
+											<view class="member-range-bubble-tail"></view>
+										</view>
+										<view class="member-range-bubble" :style="{ left: memberAgeHiBubbleLeft }">
+											<view class="member-range-bubble-box"><text class="member-range-bubble-text">{{ memberAgeHi }}</text></view>
+											<view class="member-range-bubble-tail"></view>
+										</view>
+									</view>
 								</view>
-								<view class="member-range-slider">
-									<text class="member-range-tag">最大</text>
-									<slider class="member-slider" :min="18" :max="90" :value="memberEntry.pref.ageMax" :step="1" activeColor="#c18cf6" backgroundColor="#e9e5f2" block-size="22" @change="onMemberPrefAgeMax"/>
-									<text class="member-range-val">{{ memberEntry.pref.ageMax }} 岁</text>
+								<view class="member-range-scale">
+									<view class="member-range-scale-item" :style="{ left: memberAgeScaleLeft0 }"><text class="member-range-scale-text">18</text></view>
+									<view class="member-range-scale-item" :style="{ left: memberAgeScaleLeft1 }"><text class="member-range-scale-text">36</text></view>
+									<view class="member-range-scale-item" :style="{ left: memberAgeScaleLeft2 }"><text class="member-range-scale-text">54</text></view>
+									<view class="member-range-scale-item" :style="{ left: memberAgeScaleLeft3 }"><text class="member-range-scale-text">72</text></view>
+									<view class="member-range-scale-item" :style="{ left: memberAgeScaleLeft4 }"><text class="member-range-scale-text">90</text></view>
 								</view>
 							</view>
 						</view>
 						<view class="workspace-entry-block">
-							<text class="workspace-entry-block-label">身高</text>
-							<view class="member-range-controls">
-								<view class="member-range-slider">
-									<text class="member-range-tag">最小</text>
-									<slider class="member-slider" :min="150" :max="200" :value="memberEntry.pref.heightMin" :step="1" activeColor="#c18cf6" backgroundColor="#e9e5f2" block-size="22" @change="onMemberPrefHeightMin"/>
-									<text class="member-range-val">{{ memberEntry.pref.heightMin }} cm</text>
+							<text class="workspace-entry-block-label">身高（cm）</text>
+							<view class="member-range-plate">
+								<view class="member-range-track" @touchstart="onMemberHeightTouchStart" @touchmove="onMemberHeightTouchMove" @touchend="onMemberHeightTouchEnd">
+									<view class="member-range-rail"></view>
+									<view class="member-range-fill"></view>
+									<view id="member-height-range" class="member-range-travel">
+										<view class="member-range-band" :style="{ left: memberHeightBandLeft, width: memberHeightBandWidth }"></view>
+										<view class="member-range-knob" :style="{ left: memberHeightLoLeft }">
+											<view class="member-range-knob-dot"></view>
+										</view>
+										<view class="member-range-knob" :style="{ left: memberHeightHiLeft }">
+											<view class="member-range-knob-dot"></view>
+										</view>
+										<view class="member-range-bubble" :style="{ left: memberHeightLoBubbleLeft }">
+											<view class="member-range-bubble-box"><text class="member-range-bubble-text">{{ memberHeightLo }}</text></view>
+											<view class="member-range-bubble-tail"></view>
+										</view>
+										<view class="member-range-bubble" :style="{ left: memberHeightHiBubbleLeft }">
+											<view class="member-range-bubble-box"><text class="member-range-bubble-text">{{ memberHeightHi }}</text></view>
+											<view class="member-range-bubble-tail"></view>
+										</view>
+									</view>
 								</view>
-								<view class="member-range-slider">
-									<text class="member-range-tag">最大</text>
-									<slider class="member-slider" :min="150" :max="200" :value="memberEntry.pref.heightMax" :step="1" activeColor="#c18cf6" backgroundColor="#e9e5f2" block-size="22" @change="onMemberPrefHeightMax"/>
-									<text class="member-range-val">{{ memberEntry.pref.heightMax }} cm</text>
+								<view class="member-range-scale">
+									<view class="member-range-scale-item" :style="{ left: memberHeightScaleLeft0 }"><text class="member-range-scale-text">150</text></view>
+									<view class="member-range-scale-item" :style="{ left: memberHeightScaleLeft1 }"><text class="member-range-scale-text">162</text></view>
+									<view class="member-range-scale-item" :style="{ left: memberHeightScaleLeft2 }"><text class="member-range-scale-text">175</text></view>
+									<view class="member-range-scale-item" :style="{ left: memberHeightScaleLeft3 }"><text class="member-range-scale-text">188</text></view>
+									<view class="member-range-scale-item" :style="{ left: memberHeightScaleLeft4 }"><text class="member-range-scale-text">200</text></view>
 								</view>
 							</view>
 						</view>
@@ -540,16 +603,16 @@
 								<text v-if="leadFormPhoto.length > 0" class="lead-photo-remove" @click="leadFormPhoto = ''">移除</text>
 							</view>
 						</view>
-						<view class="ls-field">
+						<view class="ls-field" :class="{ 'ls-field-floating': leadFormSourcePickerVisible }">
 							<text class="ls-label">来源渠道</text>
-							<view class="ls-chips">
-								<view v-for="chip in leadSourceToneOptions" :key="chip.label" class="ls-chip" :class="chip.tone + (leadFormSource == chip.label ? ' active' : '')" @click="leadFormSource = leadFormSource == chip.label ? '' : chip.label"><text>{{ chip.label }}</text></view>
-							</view>
-						</view>
-						<view class="ls-field">
-							<text class="ls-label">意向程度</text>
-							<view class="ls-chips">
-								<view v-for="lv in leadIntentionToneOptions" :key="lv.value" class="ls-chip" :class="lv.tone + (leadFormIntention == lv.value ? ' active' : '')" @click="leadFormIntention = lv.value"><text>{{ lv.label }}</text></view>
+							<view class="workspace-select">
+								<view class="workspace-select-trigger" @click="leadFormSourcePickerVisible = !leadFormSourcePickerVisible">
+									<text :class="{ 'workspace-select-placeholder': leadFormSource.length == 0 }">{{ leadFormSourceLabel }}</text>
+									<view class="workspace-select-caret"><view class="workspace-select-caret-up"></view><view class="workspace-select-caret-down"></view></view>
+								</view>
+								<view v-if="leadFormSourcePickerVisible" class="workspace-select-menu">
+									<view v-for="src in leadSourceOptions" :key="src" class="workspace-select-option" :class="{ active: leadFormSource == src }" @click="pickLeadFormSource(src)"><text>{{ src }}</text></view>
+								</view>
 							</view>
 						</view>
 						<view class="ls-field">
@@ -1236,27 +1299,8 @@ const workspaceCommissionTabs = ['分成明细', '分成标准']
 const workspaceLeadTabs = ['客源线索', '已放弃线索']
 const workspaceMatchTabs = ['全部', '待牵线', '牵线中', '成功', '失败']
 const workspaceMeetingTabs = ['全部', '待处理', '待见面', '已完成', '已结束']
-// 录入客源线索页的「轻档案卡」风格开关与标签配色轮播
+// 录入客源线索页的「轻档案卡」风格开关
 const isLeadEntryStudio = computed(() => workspaceVisible.value && workspaceKind.value == 'entry' && workspaceTitle.value == '录入客源线索')
-const leadToneClass = (index: number): string => {
-	const tones = ['ls-tone-pink', 'ls-tone-mint', 'ls-tone-blue', 'ls-tone-lavender', 'ls-tone-sun']
-	return tones[index % tones.length]
-}
-// 模板里不直接调用函数，配色在脚本侧预算好，避免小程序端渲染期访问实例上下文
-const leadSourceToneOptions = computed(() => {
-	const list: { label: string, tone: string }[] = []
-	for (let i = 0; i < leadSourceOptions.length; i++) {
-		list.push({ label: leadSourceOptions[i], tone: leadToneClass(i) })
-	}
-	return list
-})
-const leadIntentionToneOptions = computed(() => {
-	const list: { value: number, label: string, tone: string }[] = []
-	for (let i = 0; i < leadEntryIntentionOptions.length; i++) {
-		list.push({ value: leadEntryIntentionOptions[i].value, label: leadEntryIntentionOptions[i].label, tone: leadToneClass(i + 1) })
-	}
-	return list
-})
 const workspaceTabs = computed(() => {
 	if (workspaceKind.value == 'commission') return workspaceCommissionTabs
 	if (workspaceKind.value == 'lead') return workspaceLeadTabs
@@ -1954,14 +1998,15 @@ const leadFormGender = ref(0)
 const leadFormBirthday = ref('')
 const leadFormError = ref('')
 const leadFormSubmitting = ref(false)
+const leadFormSourcePickerVisible = ref(false)
+const leadFormSourceLabel = computed<string>(() => leadFormSource.value.length > 0 ? leadFormSource.value : '请选择来源渠道')
+const pickLeadFormSource = (value: string) => {
+	leadFormSource.value = value
+	leadFormSourcePickerVisible.value = false
+}
 // 录入视图示例数据：一键填充全表单便于联调，再点一次清空。
 const leadDemoFilled = computed(() => leadFormRealName.value != '' || leadFormName.value != '' || leadFormPhone.value != '' || leadFormWechat.value != '' || leadFormRemark.value != '')
 const leadSourceOptions = ['抖音', '微信群', '本地群', '身边朋友', '同行群', '朋友圈', 'QQ', '其他渠道', '落地页']
-const leadEntryIntentionOptions = [
-	{ value: 1, label: '初步了解' },
-	{ value: 2, label: '有意愿' },
-	{ value: 3, label: '意向强烈' }
-]
 const fillLeadDemo = () => {
 	if (leadDemoFilled.value) {
 		leadFormRealName.value = ''
@@ -2000,7 +2045,6 @@ const emptyMemberEntry = (): any => ({
 const memberEntry = ref<any>(emptyMemberEntry())
 const memberEntrySubmitting = ref(false)
 const memberEntryError = ref('')
-const memberGenderOptions = [{ value: 1, label: '男' }, { value: 2, label: '女' }]
 const memberEducationOptions = ['高中及以下', '大专', '本科', '硕士', '博士']
 // 婚况 6 项（与后端 is_married 编码 1/3/4/5/6/7 对应）
 const memberMaritalOptions = ['未婚', '离婚未育', '离异未带孩', '离异带女孩', '离异带男孩', '丧偶']
@@ -2142,6 +2186,14 @@ const pickMemberPrefMarriage = (value: string) => {
 	memberEntry.value.pref.marriageAccept = value
 	memberPrefMarriagePickerVisible.value = false
 }
+// 补充说明的结婚计划：选项与样式都复刻择偶要求的「结婚」
+const memberMarriagePlanPickerVisible = ref(false)
+const memberMarriagePlanValue = computed<string>(() => memberEntry.value.marriagePlan != null ? String(memberEntry.value.marriagePlan) : '')
+const memberMarriagePlanLabel = computed<string>(() => memberMarriagePlanValue.value.length > 0 ? memberMarriagePlanValue.value : '请选择结婚计划')
+const pickMemberMarriagePlan = (value: string) => {
+	memberEntry.value.marriagePlan = value
+	memberMarriagePlanPickerVisible.value = false
+}
 // 会员标签 12 项；同类互斥（职业性质、985/211 各只保留最后选中的一个）
 const memberTagOptions = ['高颜值', '高收入', '985毕业', '211毕业', '事业单位', '双一流', '海归', '身材好', '博士', '央国企', '银行金融', '公务员']
 // 择偶要求选项（口径与后台一致）
@@ -2264,11 +2316,250 @@ const onMemberPrefOccupationChange = (event: any) => {
 	const val = Number(event.detail.value)
 	memberEntry.value.pref.occupation = memberPrefOccupationRange.value[val] != null ? memberPrefOccupationRange.value[val] : '不限'
 }
-// 年龄/身高上下限滑动
-const onMemberPrefAgeMin = (event: any) => { memberEntry.value.pref.ageMin = Number(event.detail.value) }
-const onMemberPrefAgeMax = (event: any) => { memberEntry.value.pref.ageMax = Number(event.detail.value) }
-const onMemberPrefHeightMin = (event: any) => { memberEntry.value.pref.heightMin = Number(event.detail.value) }
-const onMemberPrefHeightMax = (event: any) => { memberEntry.value.pref.heightMax = Number(event.detail.value) }
+// 年龄：同轴双向范围条，两个旋钮共用一条轨道。
+// 位置一律是 calc((100% - 一个旋钮宽) * 比例)：比例 0→1 时旋钮盒从左端贴边滑到右端贴边，永远不溢出定位盒（小程序会整块裁掉溢出的绝对子元素）。
+// 84rpx 要先按屏宽折算成 px 才能进 calc，落点反算也用同一套折算，读数和刻度才不会偏。
+const MEMBER_AGE_MIN = 18
+const MEMBER_AGE_MAX = 90
+const MEMBER_AGE_SPAN = MEMBER_AGE_MAX - MEMBER_AGE_MIN
+const MEMBER_AGE_KNOB_RPX = 84
+const memberAgeDragRect = ref(null as any)
+const memberAgeDragLo = ref(false)
+const memberAgeDragStartX = ref(0)
+const memberAgeDragPending = ref(false)
+const memberAgeLo = computed<number>(() => Number(memberEntry.value.pref.ageMin))
+const memberAgeHi = computed<number>(() => Number(memberEntry.value.pref.ageMax))
+const memberAgeRpxToPx = (rpx: number): number => Math.round(uni.getSystemInfoSync().windowWidth / 750 * rpx * 100) / 100
+const memberAgeKnobPx = (): number => memberAgeRpxToPx(MEMBER_AGE_KNOB_RPX)
+const memberAgeRatio = (age: number): number => Math.round((age - MEMBER_AGE_MIN) / MEMBER_AGE_SPAN * 10000) / 10000
+const memberAgeLeftStyle = (ratio: number): string => 'calc((100% - ' + memberAgeKnobPx() + 'px) * ' + ratio + ')'
+const memberAgeLoLeft = computed<string>(() => memberAgeLeftStyle(memberAgeRatio(memberAgeLo.value)))
+const memberAgeHiLeft = computed<string>(() => memberAgeLeftStyle(memberAgeRatio(memberAgeHi.value)))
+const memberAgeZoneLeft = computed<string>(() => 'calc((100% - ' + memberAgeKnobPx() + 'px) * ' + memberAgeRatio(memberAgeLo.value) + ' + ' + memberAgeKnobPx() / 2 + 'px)')
+const memberAgeZoneWidth = computed<string>(() => 'calc((100% - ' + memberAgeKnobPx() + 'px) * ' + (memberAgeRatio(memberAgeHi.value) - memberAgeRatio(memberAgeLo.value)) + ')')
+const memberAgeScaleLeft0 = memberAgeLeftStyle(0)
+const memberAgeScaleLeft1 = memberAgeLeftStyle(0.25)
+const memberAgeScaleLeft2 = memberAgeLeftStyle(0.5)
+const memberAgeScaleLeft3 = memberAgeLeftStyle(0.75)
+const memberAgeScaleLeft4 = memberAgeLeftStyle(1)
+// 气泡与旋钮盒同宽，基准位置一致，只在两旋钮贴近时横向让位；让位量要用实测轨道宽度才算得出像素差。
+const MEMBER_AGE_BUBBLE_RPX = 84
+const memberAgeRangeW = ref(0)
+const measureMemberAgeRange = () => {
+	uni.createSelectorQuery().select('#member-age-range').boundingClientRect((rect: any) => {
+		if (rect == null) return
+		memberAgeDragRect.value = rect
+		memberAgeRangeW.value = Number(rect.width)
+	}).exec()
+}
+onReady(() => { measureMemberAgeRange() })
+// 两气泡中心距小于一个气泡宽就压住了：各推 need/2 到刚好相切，端点上推不动的那一侧把余量让给另一侧。
+const memberAgeBubbleLeft = (which: number): string => {
+	const base = 'calc((100% - ' + memberAgeKnobPx() + 'px) * '
+	const rLo = memberAgeRatio(memberAgeLo.value)
+	const rHi = memberAgeRatio(memberAgeHi.value)
+	const travel = memberAgeRangeW.value - memberAgeKnobPx()
+	let shiftLo = 0
+	let shiftHi = 0
+	if (travel > 0) {
+		const bubble = memberAgeRpxToPx(MEMBER_AGE_BUBBLE_RPX)
+		const gap = travel * (rHi - rLo)
+		if (gap < bubble) {
+			const need = bubble - gap
+			const maxLo = travel * rLo
+			const maxHi = travel * (1 - rHi)
+			shiftLo = Math.min(need / 2, maxLo)
+			shiftHi = Math.min(need - shiftLo, maxHi)
+			shiftLo = Math.min(need - shiftHi, maxLo)
+		}
+	}
+	return which == 0
+		? base + rLo + ' - ' + (Math.round(shiftLo * 100) / 100) + 'px)'
+		: base + rHi + ' + ' + (Math.round(shiftHi * 100) / 100) + 'px)'
+}
+const memberAgeLoBubbleLeft = computed<string>(() => memberAgeBubbleLeft(0))
+const memberAgeHiBubbleLeft = computed<string>(() => memberAgeBubbleLeft(1))
+// 某个岁数对应旋钮中心在屏幕上的 x；行程宽度 = 定位盒宽 - 一个旋钮宽
+const memberAgeKnobCenterX = (rectLeft: number, rectWidth: number, age: number): number => {
+	const knob = memberAgeKnobPx()
+	const travel = rectWidth - knob
+	if (travel <= 0) return rectLeft
+	return rectLeft + travel * memberAgeRatio(age) + knob / 2
+}
+const applyMemberAgeDrag = (clientX: number) => {
+	const rect = memberAgeDragRect.value
+	if (rect == null) return
+	const knob = memberAgeKnobPx()
+	const travel = Number(rect.width) - knob
+	if (travel <= 0) return
+	let ratio = (clientX - Number(rect.left) - knob / 2) / travel
+	ratio = Math.min(1, Math.max(0, ratio))
+	let value = Math.round(MEMBER_AGE_MIN + ratio * MEMBER_AGE_SPAN)
+	value = Math.min(MEMBER_AGE_MAX, Math.max(MEMBER_AGE_MIN, value))
+	if (memberAgeDragLo.value) {
+		if (value > memberAgeHi.value) value = memberAgeHi.value
+		memberEntry.value.pref.ageMin = value
+	} else {
+		if (value < memberAgeLo.value) value = memberAgeLo.value
+		memberEntry.value.pref.ageMax = value
+	}
+}
+// 两旋钮重合（同为极端值）时无法按就近判定归属，改按首次拖动方向挑还有活动空间的旋钮
+const resolveMemberAgeDragLo = (dx: number): boolean => {
+	if (dx > 0) {
+		if (memberAgeHi.value < MEMBER_AGE_MAX) return false
+		return memberAgeLo.value < memberAgeHi.value
+	}
+	if (memberAgeLo.value > MEMBER_AGE_MIN) return true
+	return memberAgeHi.value > memberAgeLo.value
+}
+const onMemberAgeTouchStart = (e: any) => {
+	const touch = e.touches != null && e.touches.length > 0 ? e.touches[0] : null
+	if (touch == null) return
+	uni.createSelectorQuery().select('#member-age-range').boundingClientRect((rect: any) => {
+		if (rect == null) return
+		memberAgeDragRect.value = rect
+		memberAgeRangeW.value = Number(rect.width)
+		const x = Number(touch.clientX)
+		const loX = memberAgeKnobCenterX(Number(rect.left), Number(rect.width), memberAgeLo.value)
+		const hiX = memberAgeKnobCenterX(Number(rect.left), Number(rect.width), memberAgeHi.value)
+		memberAgeDragLo.value = Math.abs(x - loX) <= Math.abs(x - hiX)
+		memberAgeDragStartX.value = x
+		memberAgeDragPending.value = Math.abs(x - loX) == Math.abs(x - hiX)
+		if (memberAgeDragPending.value == false) applyMemberAgeDrag(x)
+	}).exec()
+}
+const onMemberAgeTouchMove = (e: any) => {
+	const touch = e.touches != null && e.touches.length > 0 ? e.touches[0] : null
+	if (touch == null) return
+	const x = Number(touch.clientX)
+	if (memberAgeDragPending.value) {
+		const dx = x - memberAgeDragStartX.value
+		if (Math.abs(dx) < 2) return
+		memberAgeDragPending.value = false
+		memberAgeDragLo.value = resolveMemberAgeDragLo(dx)
+	}
+	applyMemberAgeDrag(x)
+}
+const onMemberAgeTouchEnd = () => { memberAgeDragPending.value = false }
+// 身高：与年龄同轴双向范围条（150-200cm），几何算法与注释同上面的年龄块。
+const MEMBER_HEIGHT_MIN = 150
+const MEMBER_HEIGHT_MAX = 200
+const MEMBER_HEIGHT_SPAN = MEMBER_HEIGHT_MAX - MEMBER_HEIGHT_MIN
+const MEMBER_HEIGHT_KNOB_RPX = 84
+const memberHeightDragRect = ref(null as any)
+const memberHeightDragLo = ref(false)
+const memberHeightDragStartX = ref(0)
+const memberHeightDragPending = ref(false)
+const memberHeightRangeW = ref(0)
+const memberHeightLo = computed<number>(() => Number(memberEntry.value.pref.heightMin))
+const memberHeightHi = computed<number>(() => Number(memberEntry.value.pref.heightMax))
+const memberHeightKnobPx = (): number => Math.round(uni.getSystemInfoSync().windowWidth / 750 * MEMBER_HEIGHT_KNOB_RPX * 100) / 100
+const memberHeightRatio = (cm: number): number => Math.round((cm - MEMBER_HEIGHT_MIN) / MEMBER_HEIGHT_SPAN * 10000) / 10000
+const memberHeightLeftStyle = (ratio: number): string => 'calc((100% - ' + memberHeightKnobPx() + 'px) * ' + ratio + ')'
+const memberHeightLoLeft = computed<string>(() => memberHeightLeftStyle(memberHeightRatio(memberHeightLo.value)))
+const memberHeightHiLeft = computed<string>(() => memberHeightLeftStyle(memberHeightRatio(memberHeightHi.value)))
+const memberHeightBandLeft = computed<string>(() => 'calc((100% - ' + memberHeightKnobPx() + 'px) * ' + memberHeightRatio(memberHeightLo.value) + ' + ' + memberHeightKnobPx() / 2 + 'px)')
+const memberHeightBandWidth = computed<string>(() => 'calc((100% - ' + memberHeightKnobPx() + 'px) * ' + (memberHeightRatio(memberHeightHi.value) - memberHeightRatio(memberHeightLo.value)) + ')')
+const memberHeightScaleLeft0 = memberHeightLeftStyle(0)
+const memberHeightScaleLeft1 = memberHeightLeftStyle(0.25)
+const memberHeightScaleLeft2 = memberHeightLeftStyle(0.5)
+const memberHeightScaleLeft3 = memberHeightLeftStyle(0.75)
+const memberHeightScaleLeft4 = memberHeightLeftStyle(1)
+const measureMemberHeightRange = () => {
+	uni.createSelectorQuery().select('#member-height-range').boundingClientRect((rect: any) => {
+		if (rect == null) return
+		memberHeightDragRect.value = rect
+		memberHeightRangeW.value = Number(rect.width)
+	}).exec()
+}
+onReady(() => { measureMemberHeightRange() })
+const memberHeightBubbleLeft = (which: number): string => {
+	const base = 'calc((100% - ' + memberHeightKnobPx() + 'px) * '
+	const rLo = memberHeightRatio(memberHeightLo.value)
+	const rHi = memberHeightRatio(memberHeightHi.value)
+	const travel = memberHeightRangeW.value - memberHeightKnobPx()
+	let shiftLo = 0
+	let shiftHi = 0
+	if (travel > 0) {
+		const bubble = Math.round(uni.getSystemInfoSync().windowWidth / 750 * 84 * 100) / 100
+		const gap = travel * (rHi - rLo)
+		if (gap < bubble) {
+			const need = bubble - gap
+			const maxLo = travel * rLo
+			const maxHi = travel * (1 - rHi)
+			shiftLo = Math.min(need / 2, maxLo)
+			shiftHi = Math.min(need - shiftLo, maxHi)
+			shiftLo = Math.min(need - shiftHi, maxLo)
+		}
+	}
+	return which == 0
+		? base + rLo + ' - ' + (Math.round(shiftLo * 100) / 100) + 'px)'
+		: base + rHi + ' + ' + (Math.round(shiftHi * 100) / 100) + 'px)'
+}
+const memberHeightLoBubbleLeft = computed<string>(() => memberHeightBubbleLeft(0))
+const memberHeightHiBubbleLeft = computed<string>(() => memberHeightBubbleLeft(1))
+const memberHeightKnobCenterX = (rectLeft: number, rectWidth: number, cm: number): number => {
+	const knob = memberHeightKnobPx()
+	const travel = rectWidth - knob
+	if (travel <= 0) return rectLeft
+	return rectLeft + travel * memberHeightRatio(cm) + knob / 2
+}
+const applyMemberHeightDrag = (clientX: number) => {
+	const rect = memberHeightDragRect.value
+	if (rect == null) return
+	const knob = memberHeightKnobPx()
+	const travel = Number(rect.width) - knob
+	if (travel <= 0) return
+	let ratio = (clientX - Number(rect.left) - knob / 2) / travel
+	ratio = Math.min(1, Math.max(0, ratio))
+	let value = Math.round(MEMBER_HEIGHT_MIN + ratio * MEMBER_HEIGHT_SPAN)
+	value = Math.min(MEMBER_HEIGHT_MAX, Math.max(MEMBER_HEIGHT_MIN, value))
+	if (memberHeightDragLo.value) {
+		if (value > memberHeightHi.value) value = memberHeightHi.value
+		memberEntry.value.pref.heightMin = value
+	} else {
+		if (value < memberHeightLo.value) value = memberHeightLo.value
+		memberEntry.value.pref.heightMax = value
+	}
+}
+const resolveMemberHeightDragLo = (dx: number): boolean => {
+	if (dx > 0) {
+		if (memberHeightHi.value < MEMBER_HEIGHT_MAX) return false
+		return memberHeightLo.value < memberHeightHi.value
+	}
+	if (memberHeightLo.value > MEMBER_HEIGHT_MIN) return true
+	return memberHeightHi.value > memberHeightLo.value
+}
+const onMemberHeightTouchStart = (e: any) => {
+	const touch = e.touches != null && e.touches.length > 0 ? e.touches[0] : null
+	if (touch == null) return
+	uni.createSelectorQuery().select('#member-height-range').boundingClientRect((rect: any) => {
+		if (rect == null) return
+		memberHeightDragRect.value = rect
+		memberHeightRangeW.value = Number(rect.width)
+		const x = Number(touch.clientX)
+		const loX = memberHeightKnobCenterX(Number(rect.left), Number(rect.width), memberHeightLo.value)
+		const hiX = memberHeightKnobCenterX(Number(rect.left), Number(rect.width), memberHeightHi.value)
+		memberHeightDragLo.value = Math.abs(x - loX) <= Math.abs(x - hiX)
+		memberHeightDragStartX.value = x
+		memberHeightDragPending.value = Math.abs(x - loX) == Math.abs(x - hiX)
+		if (memberHeightDragPending.value == false) applyMemberHeightDrag(x)
+	}).exec()
+}
+const onMemberHeightTouchMove = (e: any) => {
+	const touch = e.touches != null && e.touches.length > 0 ? e.touches[0] : null
+	if (touch == null) return
+	const x = Number(touch.clientX)
+	if (memberHeightDragPending.value) {
+		const dx = x - memberHeightDragStartX.value
+		if (Math.abs(dx) < 2) return
+		memberHeightDragPending.value = false
+		memberHeightDragLo.value = resolveMemberHeightDragLo(dx)
+	}
+	applyMemberHeightDrag(x)
+}
+const onMemberHeightTouchEnd = () => { memberHeightDragPending.value = false }
 const memberEntryFilled = computed(() => {
 	const d = memberEntry.value
 	return String(d.nickname).trim() != '' || String(d.phone).trim() != '' || String(d.realName).trim() != ''
@@ -2283,7 +2574,7 @@ const fillMemberDemo = () => {
 		nickname: '钱多多（示例）', realName: '钱多多', gender: 2, phone: '13922224444', wechat: 'wx_demo_qdd',
 		birthday: '1996-08-12', height: '164', weight: '50', hometown: '江苏省 南京市', residence: '浙江省 杭州市 西湖区', household: '江苏省 南京市',
 		education: '本科', maritalStatus: '未婚', occupation: '互联网行业', occupationCustom: '', income: '1-2万元', ethnicity: '汉族', zodiac: '鼠',
-		housing: '已购婚房无贷款', vehicle: '已购车', smoking: '不吸烟', drinking: '偶尔小酌', religion: '无', marriagePlan: '两年内', tags: ['高颜值', '985毕业'], remark: '示例录入：性格温和，喜欢运动和摄影，希望找同城、有稳定工作的对象。',
+		housing: '已购婚房无贷款', vehicle: '已购车', smoking: '不吸烟', drinking: '偶尔小酌', religion: '无', marriagePlan: '计划两年内', tags: ['高颜值', '985毕业'], remark: '示例录入：性格温和，喜欢运动和摄影，希望找同城、有稳定工作的对象。',
 		pref: { ageMin: 25, ageMax: 35, heightMin: 170, heightMax: 185, income: '1-2万元', education: '本科', occupation: '互联网行业', marriageAccept: '不接受离异', housing: '要有独立婚房', smoking: '不接受吸烟', weddingPlan: '计划两年内' }
 	}
 	memberEntryError.value = ''
@@ -3305,6 +3596,7 @@ const openWorkspace = async (title: string, kind: string, initialTab: string = '
 		leadFormPhone.value = ''
 		leadFormWechat.value = ''
 		leadFormSource.value = ''
+		leadFormSourcePickerVisible.value = false
 		leadFormRemark.value = ''
 		leadFormIntention.value = 1
 		leadFormPhoto.value = ''
@@ -3952,6 +4244,12 @@ const submitApplication = async () => {
 .workspace-entry-row.last { border-bottom: none; }
 .workspace-entry-label { width: 84rpx; color: var(--ink2); font-size: 24rpx; font-weight: 700; flex-shrink: 0; }
 .workspace-entry-row input { flex: 1; min-width: 0; color: var(--ink); font-size: 25rpx; }
+/* 带 typo 的卡片（基础信息、身形与属地）字号向「学历」气泡看齐：标签 28rpx、控件文字 27rpx。
+   只动字号，颜色和字重保持原样。 */
+.workspace-entry-formcard-typo .workspace-entry-label { font-size: 28rpx; }
+.workspace-entry-formcard-typo .workspace-entry-row input { font-size: 27rpx; }
+.workspace-entry-formcard-typo .workspace-entry-picker text { font-size: 27rpx; }
+.workspace-entry-formcard-typo .ls-chip text { font-size: 27rpx; }
 .workspace-entry-picker { flex: 1; display: flex; flex-direction: row; align-items: center; justify-content: flex-end; gap: 10rpx; }
 .workspace-entry-picker text { color: var(--ink2); font-size: 25rpx; }
 .workspace-entry-picker i { width: 12rpx; height: 12rpx; border-top: 2rpx solid var(--muted); border-right: 2rpx solid var(--muted); transform: rotate(45deg); }
@@ -3960,7 +4258,6 @@ const submitApplication = async () => {
 /* 购房面板展开时隐藏本行分隔线：1px 实线会穿过半透明投影，把软阴影切成一条硬边。 */
 .workspace-entry-block-floating { border-bottom-color: transparent; }
 .workspace-entry-block-label { color: var(--ink); font-size: 28rpx; font-weight: 800; }
-.workspace-entry-chips { display: flex; flex-direction: row; flex-wrap: wrap; gap: 12rpx; }
 .workspace-entry-chip { padding: 10rpx 24rpx; border-radius: 999rpx; background: var(--surface); border: 1px solid var(--match-line); }
 .workspace-entry-chip text { color: var(--ink2); font-size: 21rpx; font-weight: 700; }
 .workspace-entry-chip.active { background: var(--match-deep); border-color: var(--match-deep); }
@@ -3988,6 +4285,8 @@ const submitApplication = async () => {
 .workspace-select-trigger { min-height: 88rpx; padding: 0 28rpx; display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 20rpx; }
 .workspace-select-trigger text { color: var(--ink); font-size: 27rpx; font-weight: 500; }
 .workspace-select-trigger .workspace-select-placeholder { color: var(--muted); font-weight: 400; }
+/* 自由输入项（如宗教）套进同一个气泡外壳时，input 自己吃掉剩余宽度，字号与触发条正文对齐。 */
+.workspace-select-trigger input { flex: 1; min-width: 0; background: transparent; color: var(--ink); font-size: 27rpx; font-weight: 500; }
 /* 双人字箭头：两条边框拼出的转角是极尖锐角，细描边在尖点上会被光栅化削掉（像素图里两撇实心、尖点空白），
    所以给转角加小圆角把尖点变钝头；描边维持 3rpx 且用 --muted，比正文的 --ink 浅一档。 */
 .workspace-select-caret { width: 36rpx; height: 44rpx; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4rpx; }
@@ -4001,11 +4300,26 @@ const submitApplication = async () => {
 .workspace-select-option:active { background: var(--match-mist); }
 .workspace-entry-textarea { width: 100%; min-height: 130rpx; padding: 16rpx; border-radius: 12rpx; background: var(--surface); border: 1px solid var(--match-line); color: var(--ink); font-size: 23rpx; line-height: 1.6; box-sizing: border-box; }
 .workspace-entry-custom-input { width: 100%; margin-top: 14rpx; padding: 14rpx 18rpx; border-radius: 12rpx; background: var(--surface); border: 1px solid var(--match-line); color: var(--ink); font-size: 23rpx; }
-.member-range-controls { width: 100%; display: flex; flex-direction: column; gap: 18rpx; }
-.member-range-slider { width: 100%; display: flex; flex-direction: row; align-items: center; gap: 14rpx; }
-.member-range-tag { width: 70rpx; color: var(--ink2); font-size: 22rpx; flex-shrink: 0; }
-.member-range-val { width: 100rpx; color: var(--ink); font-size: 22rpx; font-weight: 700; text-align: right; flex-shrink: 0; }
-.member-slider { flex: 1; min-width: 0; }
+/* 年龄 / 身高共用的同轴双向范围条（仿设计稿）。浅雾绿底板里绿/白两段，两个白色旋钮共用同一根轴，旋钮顶上一枚墨绿气泡读数。
+   小程序会把「溢出定位祖先」的绝对子元素整块裁掉，所以既不能用负 margin 居中旋钮，也不能把定位盒缩窄：
+   定位盒铺满轨道，位置一律写成 calc((100% - 一个旋钮宽) * 比例)，旋钮盒永远留在轨道内，端点上气泡和右端旋钮都不会被裁。
+   刻度行用同一个 calc 表达式（比例 0/0.25/0.5/0.75/1、标签盒与旋钮同宽），标签中心与旋钮中心逐一对齐。 */
+.member-range-plate { width: 100%; box-sizing: border-box; padding: 22rpx 28rpx 16rpx; border-radius: 28rpx; background: var(--match-mist); }
+.member-range-track { position: relative; width: 100%; height: 140rpx; }
+.member-range-rail { position: absolute; left: 0; right: 0; top: 96rpx; height: 44rpx; border-radius: 22rpx; background: rgba(21, 74, 69, .10); }
+.member-range-fill { position: absolute; left: 8rpx; right: 8rpx; top: 102rpx; height: 32rpx; border-radius: 16rpx; background: var(--sage-soft); }
+.member-range-travel { position: absolute; left: 0; right: 0; top: 0; bottom: 0; }
+.member-range-band { position: absolute; top: 102rpx; height: 32rpx; border-radius: 16rpx; background: var(--surface); box-shadow: inset 0 0 0 1px rgba(21, 74, 69, .06); }
+.member-range-knob { position: absolute; top: 96rpx; width: 84rpx; display: flex; flex-direction: column; align-items: center; }
+.member-range-knob-dot { width: 44rpx; height: 44rpx; border-radius: 22rpx; background: var(--surface); border: 1px solid var(--match-line); box-shadow: 0 4rpx 12rpx rgba(21, 74, 69, .18); }
+/* 气泡单独一层（不再嵌在旋钮里）：两旋钮贴近时它需要横向让位，而小程序会裁掉溢出定位盒的子元素，只有平级才推得开。 */
+.member-range-bubble { position: absolute; top: 37rpx; width: 84rpx; display: flex; flex-direction: column; align-items: center; }
+.member-range-scale { position: relative; height: 28rpx; }
+.member-range-scale-item { position: absolute; top: 0; width: 84rpx; display: flex; flex-direction: row; justify-content: center; }
+.member-range-scale-text { color: var(--ink2); font-size: 20rpx; }
+.member-range-bubble-box { width: 84rpx; height: 52rpx; border-radius: 14rpx; background: var(--match-deep); display: flex; flex-direction: row; align-items: center; justify-content: center; }
+.member-range-bubble-text { color: var(--match-paper); font-size: 26rpx; font-weight: 800; }
+.member-range-bubble-tail { width: 14rpx; height: 14rpx; margin-top: -7rpx; border-radius: 3rpx; background: var(--match-deep); transform: rotate(45deg); }
 .workspace-entry-submit { margin-top: 6rpx; min-height: 88rpx; border-radius: 999rpx; background: var(--accent); display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-sm); }
 .workspace-entry-submit text { color: var(--paper); font-size: 27rpx; font-weight: 800; }
 .workspace-entry-submit.disabled { opacity: .55; }
@@ -5806,6 +6120,8 @@ const submitApplication = async () => {
 /* 字段：小灰标签 + 大值 */
 .ls-field { padding: 26rpx 0; border-bottom: 1rpx solid #EEF3F0; display: flex; flex-direction: column; gap: 12rpx; }
 .ls-field:last-child { border-bottom: none; }
+/* 气泡下拉展开时把本行 1px 分隔线让出来，阴影压在分隔线上会显脏。 */
+.ls-field-floating { border-bottom-color: transparent; }
 .ls-label { color: #93A39C; font-size: 21rpx; font-weight: 600; }
 .ls-label-row { display: flex; flex-direction: row; align-items: center; justify-content: space-between; }
 .ls-count { color: #A9B8B1; font-size: 20rpx; }
