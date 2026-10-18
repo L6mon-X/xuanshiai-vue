@@ -184,7 +184,6 @@ const navigationItems = computed(() => {
 		{ key: 'introductions', label: '牵线记录', icon: '牵', tone: 'tone-four', action: '查看牵线记录', value: '成功 ' + metricValue('introduction_succeeded') },
 		{ key: 'requests', label: '约见申请', icon: '约', tone: 'tone-five', action: '查看约见申请', value: metricValue('meeting_requests') + ' 条待处理' },
 		{ key: 'meetings', label: '约会管理', icon: '会', tone: 'tone-one', action: '查看约会管理', value: '等待见面 ' + metricValue('pending_meeting') },
-		{ key: 'video', label: '视频管理', icon: '视', tone: 'tone-two', action: '查看视频管理', value: '' },
 		{ key: 'commission', label: '分成明细', icon: '分', tone: 'tone-three', action: '查看分成明细', value: '￥' + metricValue('online_commission') },
 		{ key: 'finance', label: '财务明细', icon: '财', tone: 'tone-five', action: '查看财务明细', value: metricValue('offline_performance') == '0' ? '--' : '￥' + metricValue('offline_performance') },
 		{ key: 'account', label: '我的账号', icon: '账', tone: 'tone-four', action: '查看我的账号', value: '' }
