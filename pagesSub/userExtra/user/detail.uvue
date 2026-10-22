@@ -90,6 +90,14 @@
 						<view v-for="(item, index) in user.expect" :key="index" class="qa-card"><text class="qa-answer">{{ item }}</text></view>
 					</view>
 
+					<view v-if="user.qaAnswers.length > 0" id="anchor-qa" class="vip-section-card">
+						<text class="vip-section-title">Ta的问答</text>
+						<view v-for="(item, index) in user.qaAnswers" :key="index" class="qa-card">
+							<text class="qa-question">{{ item.question }}</text>
+							<text class="qa-answer">{{ item.answer }}</text>
+						</view>
+					</view>
+
 					<view v-if="dynamics.length > 0" id="anchor-dynamics" class="vip-section-card">
 						<view class="section-heading-row"><text class="vip-section-title">Ta的动态</text><text class="section-more">查看全部 ›</text></view>
 						<view v-for="item in dynamics" :key="item.id" class="dynamic-card"><view class="dynamic-user-row"><image class="dynamic-avatar" :src="user.avatar" mode="aspectFill"></image><view class="dynamic-user-copy"><text class="dynamic-name">{{ user.name }}</text><text class="dynamic-time">{{ item.time }}</text></view></view><text class="dynamic-content">{{ item.content }}</text><image v-if="item.photo != ''" class="dynamic-photo" :src="item.photo" mode="aspectFill"></image><view class="dynamic-footer"><text class="dynamic-topic">{{ item.topic }}</text><text class="dynamic-count">♡ {{ item.likes }}　◌ {{ item.comments }}</text></view></view>
@@ -235,6 +243,7 @@ import { resolveMediaUrl, getAccessToken } from '@/api/config.uts'
 import locationJson from '@/data/location.json'
 import { SPOTLIGHT_AMOUNT, paySpotlight } from '@/api/spotlight.uts'
 import { guardRealName } from '@/utils/realNameGate.uts'
+import { recordProfileView, rollbackProfileView } from '@/utils/quota.uts'
 import { attachmentStyleLabel, narrativeBadgeVisible } from '@/utils/moxiang-badge.uts'
 
 const isLockedView = ref(false)
@@ -263,7 +272,7 @@ const user = ref({
 	detailLocked: false,
 	name: '', age: '', avatar: '', isVIP: false, job: '', edu: '', city: '',
 	online: '', distance: '', recentActivity: '', match: 0, matchAvailable: false, mbti: '', tags: [], bio: '',
-	cover: '', photos: [], lifePhotos: [], expect: [], basicInfo: [],
+	cover: '', photos: [], lifePhotos: [], expect: [], basicInfo: [], qaAnswers: [] as any[],
 	moxiangPersonaTitle: '',
 	moxiangPersonaTags: [] as string[],
 	moxiangAttachmentStyle: ''
@@ -375,7 +384,7 @@ const formatIncome = (raw: any): string => {
 user.value = {
 	id: 0, name: '', detailLocked: false, age: '', avatar: '', isVIP: false, job: '', edu: '', city: '',
 	online: '', distance: '', recentActivity: '', match: 0, matchAvailable: false, tags: [], bio: '',
-	cover: '', photos: [], lifePhotos: [], expect: [], basicInfo: [],
+	cover: '', photos: [], lifePhotos: [], expect: [], basicInfo: [], qaAnswers: [] as any[],
 	moxiangPersonaTitle: '',
 	moxiangPersonaTags: [] as string[],
 	moxiangAttachmentStyle: ''
@@ -439,6 +448,18 @@ const mapDetailUser = (raw: any, id: number) => {
 	const expectations = profile.tag_selections != null && Array.isArray(profile.tag_selections.relationship_expectation)
 		? profile.tag_selections.relationship_expectation as string[]
 		: Array.isArray(card.expect) && card.expect.length > 0 ? card.expect as string[] : []
+	// 「关于我」公开问答：AI 画像整理成的自我介绍与三题回答会写回 user_profile.qa_answers，
+	// 后端 get_profile 已返回该字段（public 脱敏分支不剔除），只渲染有答案的题。
+	const rawQaAnswers = Array.isArray(profile.qa_answers) ? profile.qa_answers as any[] : (Array.isArray(card.qa_answers) ? card.qa_answers as any[] : [])
+	const qaAnswers: any[] = []
+	for (let qaIndex = 0; qaIndex < rawQaAnswers.length; qaIndex++) {
+		const item: any = rawQaAnswers[qaIndex]
+		if (item == null || typeof item != 'object') continue
+		const answer = String(item.answer ?? '').trim()
+		if (answer == '') continue
+		const question = String(item.question ?? '').trim()
+		qaAnswers.push({ question: question != '' ? question : '关于我', answer: answer })
+	}
 	const mappedInfo = [
 		[{ label: '年龄', value: age == missing ? missing : age + '岁' }, { label: '身高', value: height }, { label: '体重', value: weight }],
 		[{ label: '星座', value: constellation }, { label: '学历', value: edu }, { label: '职业', value: job }],
@@ -486,6 +507,7 @@ const mapDetailUser = (raw: any, id: number) => {
 		photos,
 		lifePhotos,
 		expect: expectations,
+		qaAnswers: qaAnswers,
 		basicInfo: mappedInfo,
 		moxiangPersonaTitle,
 		moxiangPersonaTags,
@@ -552,8 +574,12 @@ const load = async () => {
 			}
 		} else {
 			const message = res != null && res.message != null ? '' + res.message : '请稍后重试'
-			detailQuotaExhausted.value = res != null && Number(res.code) == 429 && message.indexOf('浏览额度') >= 0
-			detailError.value = detailQuotaExhausted.value ? '今日完整浏览额度已用完' : message
+			const isQuota = res != null && Number(res.code) == 429 && message.indexOf('浏览额度') >= 0
+			detailQuotaExhausted.value = isQuota
+			detailError.value = isQuota ? '今日可查看的新资料已用完' : message
+			// 本地已为该用户记账、但服务端判定无额度：把这一位还回去，避免白扣。
+			// rollbackProfileView 对未记录的 id 是无操作，回看已浏览用户被 429 不会误删记录。
+			if (isQuota) rollbackProfileView(user.value.id)
 		}
 	} catch (e) {
 		detailError.value = '网络异常，请稍后重试'
@@ -648,6 +674,15 @@ onMounted(async () => {
 	user.value.id = parsed
 	applyUserId.value = parsed
 	await loadViewerMembership()
+	// 打开他人完整资料计入一次「可查看人数」；本人主页、预览、红娘代看不计入。
+	// 该记录是幂等的：若首页切卡已为该用户记过账，此处不会重复扣。
+	const countsAsBrowse = !isOwnProfile.value && !isPreview.value && !fromMatchmaker.value && parsed > 0
+	if (countsAsBrowse && !recordProfileView(parsed)) {
+		detailQuotaExhausted.value = true
+		detailError.value = '今日可查看的新资料已用完'
+		detailLoading.value = false
+		return
+	}
 	await load()
 	detailLoadedOnce = true
 	if (!isOwnProfile.value && !isPreview.value && !fromMatchmaker.value && uni.getStorageSync('xsa_ai_avatar_guide_shown') != true) showAiGuide.value = true
@@ -662,6 +697,17 @@ onShow(async () => {
 	await loadViewerMembership()
 	// 红娘代编返回后重新拉取会员资料，保证主页立即反映刚保存的内容
 	if (detailLoadedOnce && fromMatchmaker.value) await load()
+	// 额度用完态下从会员页返回：上限可能已从 8 提到 20，重新判定一次再加载，
+	// 否则用户刚开通会员回到本页仍停在「今日可查看的新资料已用完」。
+	if (!detailLoadedOnce && detailQuotaExhausted.value && Number(user.value.id) > 0) {
+		const canView = !isOwnProfile.value && !isPreview.value && !fromMatchmaker.value
+		if (canView && recordProfileView(Number(user.value.id))) {
+			detailQuotaExhausted.value = false
+			detailError.value = ''
+			await load()
+			detailLoadedOnce = true
+		}
+	}
 	refreshLockedView()
 })
 
@@ -913,6 +959,7 @@ const onLike = async () => {
 .qa-card { display: flex; flex-direction: column; gap: 12rpx; padding: 24rpx; border-radius: 16rpx; background-color: var(--canvas); }
 .qa-question { color: var(--accent2); font-size: 24rpx; font-weight: 700; }
 .qa-answer { color: var(--ink2); font-size: 24rpx; line-height: 1.6; }
+.qa-question { color: var(--ink); font-size: 26rpx; font-weight: 700; line-height: 1.5; }
 .section-more { color: var(--accent2); font-size: 22rpx; }
 .dynamic-card { display: flex; flex-direction: column; gap: 18rpx; padding: 24rpx; border-radius: 18rpx; background-color: var(--canvas); }
 .dynamic-user-row { display: flex; flex-direction: row; align-items: center; gap: 16rpx; }
