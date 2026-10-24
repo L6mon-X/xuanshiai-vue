@@ -8,9 +8,9 @@
 			<view class="error-mark"><text>!</text></view>
 			<text class="error-title">{{ detailQuotaExhausted ? '今日浏览额度已用完' : '资料暂时无法打开' }}</text>
 			<text class="error-description">{{ detailError }}</text>
-			<text class="error-hint">{{ detailQuotaExhausted ? '开通会员可增加每日浏览额度' : '请检查网络后重试' }}</text>
+			<text class="error-hint">{{ detailQuotaExhausted ? (viewerIsVip ? '会员额度已用完，可用积分兑换今日查看次数' : '开通会员可增加每日浏览额度') : '请检查网络后重试' }}</text>
 			<view class="error-actions">
-				<view class="error-retry" @tap="handleDetailErrorAction"><text>{{ detailQuotaExhausted ? '开通会员' : '重新加载' }}</text></view>
+				<view class="error-retry" @tap="handleDetailErrorAction"><text>{{ detailQuotaExhausted ? (viewerIsVip ? '去兑换次数' : '开通会员') : '重新加载' }}</text></view>
 				<view class="error-cancel" @tap="onBack"><text>返回</text></view>
 			</view>
 		</view>
@@ -243,6 +243,7 @@ import { resolveMediaUrl, getAccessToken } from '@/api/config.uts'
 import locationJson from '@/data/location.json'
 import { SPOTLIGHT_AMOUNT, paySpotlight } from '@/api/spotlight.uts'
 import { guardRealName } from '@/utils/realNameGate.uts'
+import { incomeDisplayText, locationDisplayByCodes } from '@/utils/profile-field-display.uts'
 import { recordProfileView, rollbackProfileView } from '@/utils/quota.uts'
 import { attachmentStyleLabel, narrativeBadgeVisible } from '@/utils/moxiang-badge.uts'
 
@@ -278,12 +279,35 @@ const user = ref({
 	moxiangAttachmentStyle: ''
 })
 
-const certs = ref([
-	{ icon: '盾', shortLabel: '实名', label: '实名认证', desc: '已通过平台实名认证' },
-	{ icon: '学', shortLabel: '学历', label: '学历认证', desc: '学历信息已核验' },
-	{ icon: '像', shortLabel: '头像', label: '头像认证', desc: '头像为本人真实照片' },
-	{ icon: '房', shortLabel: '房产', label: '房产认证', desc: '房产信息已认证' }
-])
+// 认证标签 → 展示项。只翻译后端真实下发的标签，不凭空补"房产认证"之类的结论。
+const CERT_META: any = {
+	'实名': { icon: '盾', desc: '已通过平台实名认证' },
+	'实名认证': { icon: '盾', desc: '已通过平台实名认证' },
+	'学历': { icon: '学', desc: '学历信息已核验' },
+	'学历认证': { icon: '学', desc: '学历信息已核验' },
+	'头像': { icon: '像', desc: '头像为本人真实照片' },
+	'头像认证': { icon: '像', desc: '头像为本人真实照片' },
+	'单身承诺': { icon: '誓', desc: '已签署单身承诺书' }
+}
+
+const buildCertsFromTags = (tags: any): any[] => {
+	const list: any[] = []
+	if (!Array.isArray(tags)) return list
+	for (const raw of tags as any[]) {
+		const label = ('' + raw).trim()
+		if (label == '') continue
+		const meta = CERT_META[label] != null ? CERT_META[label] : { icon: '✓', desc: '已通过平台认证' }
+		list.push({
+			icon: meta.icon,
+			shortLabel: label,
+			label: label.indexOf('认证') >= 0 ? label : label + '认证',
+			desc: meta.desc
+		})
+	}
+	return list
+}
+
+const certs = ref([] as any[])
 
 const dynamics = ref([] as any[])
 
@@ -364,22 +388,8 @@ const formatDimension = (raw: any, unit: string): string => {
 	return output.endsWith(unit) ? output : output + unit
 }
 
-const formatIncome = (raw: any): string => {
-	if (raw == null || raw === '') return '未填写'
-	const text = '' + raw
-	const amount = Number(text)
-	if (!isNaN(amount) && text.trim() != '') {
-		// 初始登录问卷把收入文本换算成数字存储，这里反向映射回登录时的枚举文案，保证口径一致
-		if (amount == 50000) return '小于10w'
-		if (amount == 150000) return '10-20w'
-		if (amount == 400000) return '30-50w'
-		if (amount == 750000) return '50-100w'
-		if (amount >= 1000000) return '100w以上'
-		const wan = Math.round(amount / 1000) / 10
-		return (wan % 1 == 0 ? '' + Math.round(wan) : '' + wan) + 'w'
-	}
-	return text.replace(/万/g, 'w')
-}
+// 统一口径：收入展示走 utils 里的唯一实现，避免首页/详情/编辑三处各写一份
+const formatIncome = (raw: any): string => incomeDisplayText(raw)
 
 user.value = {
 	id: 0, name: '', detailLocked: false, age: '', avatar: '', isVIP: false, job: '', edu: '', city: '',
@@ -513,6 +523,10 @@ const mapDetailUser = (raw: any, id: number) => {
 		moxiangPersonaTags,
 		moxiangAttachmentStyle
 	}
+	// 认证区曾硬编码「实名/学历/头像/房产」四项并在初始化后清空，
+	// 结果既永远不渲染、又虚构了不存在的「房产认证」。
+	// 现在只认后端下发的 certification_tags（与首页名片同一数据源），无数据则整块隐藏。
+	certs.value = buildCertsFromTags(card.certification_tags != null ? card.certification_tags : (profile.certification_tags != null ? profile.certification_tags : []))
 	applyUserId.value = user.value.id
 }
 
@@ -713,7 +727,17 @@ onShow(async () => {
 
 const onBack = () => { uni.navigateBack({ delta: 1 }) }
 const openQuotaMembership = () => { uni.navigateTo({ url: '/pagesSub/profileExtra/vip' }) }
-const handleDetailErrorAction = () => { if (detailQuotaExhausted.value) openQuotaMembership(); else load() }
+// 额度耗尽分两条路：普通用户去开通会员，VIP 去积分兑换次数。
+// 以前 VIP 用完也被引导"开通会员"，既没有意义也找不到兑换入口。
+const openQuotaExchange = () => { uni.navigateTo({ url: '/pagesSub/profileExtra/my-tasks' }) }
+const handleDetailErrorAction = () => {
+	if (detailQuotaExhausted.value) {
+		if (viewerIsVip.value) openQuotaExchange()
+		else openQuotaMembership()
+		return
+	}
+	load()
+}
 const onShare = () => { uni.showToast({ title: '分享给朋友', icon: 'none' }) }
 const goEdit = () => { uni.navigateTo({ url: '/pagesSub/userExtra/user/edit' }) }
 /* 红娘查看会员主页底部操作栏：编辑资料 / 红娘中心 */

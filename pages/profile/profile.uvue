@@ -115,14 +115,14 @@
 				</view>
 			</view>
 
-			<!-- VIP 会员卡 -->
-			<view v-if="!user.isVip" class="vip-card" @tap="onOpenVIP">
+			<!-- VIP 会员卡：会员态不再整块隐藏，否则已开通用户找不到续费/查看权益的入口 -->
+			<view class="vip-card" @tap="onOpenVIP">
 				<view class="vip-crown-wrap">
 					<text class="ic ic-vip ic-huiyuan vip-crown"></text>
 				</view>
 				<view class="vip-text-col">
-					<text class="vip-card-title">开通会员</text>
-					<text class="vip-card-sub">解锁全部功能，遇见更多可能</text>
+					<text class="vip-card-title">{{ user.isVip ? '会员中心' : '开通会员' }}</text>
+					<text class="vip-card-sub">{{ user.isVip ? '查看权益与续费' : '解锁全部功能，遇见更多可能' }}</text>
 				</view>
 				<text class="ic ic-sys ic-jiantou-you vip-arrow"></text>
 			</view>

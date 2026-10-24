@@ -757,6 +757,7 @@
 	import { getMembershipPackages } from '@/api/discovery.uts'
 	import { getMembershipStatus } from '@/api/membership.uts'
 	import { resolveMediaUrl, getAccessToken } from '@/api/config.uts'
+	import { locationDisplayByCodes, incomeDisplayText } from '@/utils/profile-field-display.uts'
 	import {
 		recordProfileView,
 		resetDailyIfNeeded,
@@ -819,16 +820,7 @@
 	}
 
 	// ========== 推荐页数据 ==========
-	const formatIncomeDisplay = (raw: any): string => {
-		if (raw == null || raw === '') return '未填写'
-		const text = '' + raw
-		const amount = Number(text)
-		if (!isNaN(amount) && text.trim() != '') {
-			const wan = Math.round(amount / 1000) / 10
-			return (wan % 1 == 0 ? '' + Math.round(wan) : '' + wan) + 'w'
-		}
-		return text.replace(/万/g, 'w')
-	}
+	const formatIncomeDisplay = (raw: any): string => incomeDisplayText(raw)
 	const educationText = (raw: any): string => {
 		const labels = ['', '博士', '硕士', '本科', '大专', '高中', '中专', '初中', '小学']
 		if (raw == null || raw === '') return '未填写'
@@ -855,7 +847,10 @@
 	const locationTextByCityCode = (rawCode: any): string => {
 		const cityCode = rawCode != null ? '' + rawCode : ''
 		if (cityCode == '') return '未填写'
-		return cityCode
+		// 卡片只带 city_code，能查到市/区就显示地名；查不到也不要回显裸编码，
+		// 否则首页会出现「现居 110100」而编辑页是「北京市 市辖区 东城区」。
+		const resolved = locationDisplayByCodes(cityCode, cityCode, '')
+		return resolved != '' ? resolved : '未填写'
 	}
 	const basicInfoRows = computed(() => [
 		[
