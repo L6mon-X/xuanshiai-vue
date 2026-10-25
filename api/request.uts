@@ -9,7 +9,10 @@ import {
   API_CONFIG,
   MOCK_DELAY,
   getAccessToken,
+  getRefreshToken,
+  setAuthTokens,
   clearAuthTokens,
+  CURRENT_USER_ID_KEY,
   ONBOARDING_MODE_KEY,
   ONBOARDING_COMPLETED_KEY,
   buildApiUrl
@@ -112,6 +115,54 @@ function extractHeaderRequestId(res: any): string {
   return ''
 }
 
+// —— 登录态自动续期 ——
+// 单飞缓存：并发 401 共用同一次刷新，避免用同一旧 refresh_token 连打两次
+// （后端刷新为 rotation，旧 refresh_token 成功后立即作废，第二次必 401）。
+let refreshingPromise: Promise<any> | null = null
+
+/**
+ * 用 refresh_token 换新 access_token。原生 uni.request 直连，不走 request 封装，
+ * 防止刷新请求自身再触发 401 续期造成递归。
+ */
+function doRefresh(): Promise<any> {
+  const refreshToken = getRefreshToken()
+  if (refreshToken == '') return Promise.resolve({ success: false, code: 401 })
+  return new Promise((resolve) => {
+    uni.request({
+      url: buildApiUrl('/auth/refresh'),
+      method: 'POST',
+      header: { 'Content-Type': 'application/json' },
+      data: { refresh_token: refreshToken },
+      success: (res: any) => {
+        const status = res.statusCode != null ? Number(res.statusCode) : 0
+        const raw = res.data
+        if (status >= 200 && status < 300 && raw != null && raw.access_token != null) {
+          setAuthTokens('' + raw.access_token, raw.refresh_token != null ? '' + raw.refresh_token : '')
+          if (raw.user_id != null) {
+            try { uni.setStorageSync(CURRENT_USER_ID_KEY, raw.user_id) } catch (e) {}
+          }
+          resolve({ success: true, code: status })
+        } else {
+          resolve({ success: false, code: status })
+        }
+      },
+      fail: () => resolve({ success: false, code: -1 })
+    })
+  })
+}
+
+function refreshOnce(): Promise<any> {
+  if (refreshingPromise == null) {
+    refreshingPromise = doRefresh().finally(() => { refreshingPromise = null })
+  }
+  return refreshingPromise
+}
+
+/** 对外手动刷新入口（供 auth.uts re-export 或未来主动续期场景复用）。 */
+export async function refreshAccessToken(): Promise<any> {
+  return refreshOnce()
+}
+
 function extractDetail(data: any): string {
   if (data == null) return '请求失败'
   if (typeof data === 'string') return data
@@ -189,7 +240,7 @@ async function httpRequest(options: any) {
       data: body,
       header: headers,
       timeout: timeout,
-      success: (res: any) => {
+      success: async (res: any) => {
         const status = res.statusCode != null ? (res.statusCode as number) : 0
         const raw = res.data
         if (status == 204) {
@@ -206,6 +257,19 @@ async function httpRequest(options: any) {
           return
         }
         if (status == 401) {
+          // 会话过期：先尝试静默续期并重放一次；刷新请求自身(skipAuth) / 已重放过，
+          // 不再刷新，避免递归与死循环。
+          if (options.skipAuth != true && options.__retried != true) {
+            try {
+              const refreshed = await refreshOnce()
+              if (refreshed != null && refreshed.success === true) {
+                resolve(await httpRequest({ ...options, __retried: true }))
+                return
+              }
+            } catch (e) {
+              // 刷新异常视同失败，继续走清凭证。
+            }
+          }
           // 401 = 会话过期，不是新账号：清凭证，但保留已完成的引导状态，
           // 避免用户重登后被重新推回 onboarding（parent 模式还会丢路由依据）。
           const preserved = snapshotOnboardingState()

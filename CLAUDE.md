@@ -39,6 +39,7 @@ xuanshiai-vue/
 - 全局 Token 与视觉规则：uni.scss、App.uvue、docs/authoritative/DESIGN.md。
 - Tab 与路由：pages.json。
 - Mock 开关与接口边界：api/config.uts、api/、mock/。
+- 登录态与请求封装：api/request.uts（统一请求 + 401 自动续期：用 refresh_token 换新 token 后重放原请求一次，单飞防并发）、api/config.uts（token 存取 + 后端地址绑定）、api/auth.uts（登录/续期入口）。
 - 社区闭环：pages/community/*、api/community.uts、mock/community.uts、utils/realNameGate.uts、XsaApplySheet / XsaReportSheet / XsaDynamicCard。
 - 复用 UI：components/Xsa*.uvue。
 - 运行和刷新排障：docs/HOW_TO_RUN.md、docs/TROUBLESHOOTING.md。

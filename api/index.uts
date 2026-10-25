@@ -17,7 +17,8 @@ export {
   getUserCertifications,
   submitEducationCertification,
   submitSinglePledgeCertification,
-  logout
+  logout,
+  refreshAccessToken
 } from './auth.uts'
 
 // 用户相关

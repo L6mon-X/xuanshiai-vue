@@ -47,6 +47,20 @@ export function getAccessToken(): string {
   return ''
 }
 
+export function getRefreshToken(): string {
+  try {
+    const token = uni.getStorageSync(REFRESH_TOKEN_KEY)
+    if (token == null || token === '') return ''
+    const boundBase = uni.getStorageSync(TOKEN_BASE_KEY)
+    const base = boundBase != null ? String(boundBase) : ''
+    // 与 getAccessToken 同款环境绑定校验：换后端后旧 refresh_token 视为无效，
+    // 避免拿上一套后端的 refresh_token 去打新后端（必然 401）。
+    if (base != '' && base != API_BASE_URL) return ''
+    return '' + token
+  } catch (e) {}
+  return ''
+}
+
 export function setAuthTokens(accessToken: string, refreshToken: string = '') {
   try {
     if (accessToken != null && accessToken !== '') {
