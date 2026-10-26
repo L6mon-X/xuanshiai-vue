@@ -210,6 +210,8 @@ export {
   getMyActivities,
   getCommunityBanners,
   getFixedCommunityBanner,
+  getFixedTopicBanner,
+  getFixedActivityBanner,
   ensureCommunityBanners,
   getCommunityNotifications,
   getOfficialCommunityActivities,
