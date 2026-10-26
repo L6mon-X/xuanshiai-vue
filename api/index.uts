@@ -165,6 +165,7 @@ export type {
 // 情感实验室相关
 export {
   getEmotionLabSummary,
+  getEmotionLabOfflineSummary,
   getEmotionLabMatches,
   startMbtiAssessment,
   saveMbtiAnswer,
@@ -301,6 +302,7 @@ export {
 // 爆灯相关
 export {
   SPOTLIGHT_AMOUNT,
+  sendSuperlike,
   paySpotlight
 } from './spotlight.uts'
 
